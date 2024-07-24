@@ -1,0 +1,12 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum-streams = { version = "0.18.0" }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tonic = { workspace = true }
+axum = { version = "0.7.5" }
+protos = { workspace = true }

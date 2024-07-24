@@ -1,0 +1,19 @@
+syntax = "proto3";
+package helloworld;
+
+service Greeter {
+    rpc Greet (HelloRequest) returns (HelloResponse) {};
+    rpc Image (HelloRequest) returns (stream ImageResponse) {};
+}
+
+message HelloRequest{
+    string name = 1;
+}
+
+message HelloResponse {
+    string response = 1; 
+}
+
+message ImageResponse {
+    bytes image_data = 1;
+}

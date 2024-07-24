@@ -1,0 +1,7 @@
+# Compiled output for grpc
+protos/src/gen
+.direnv/
+target/
+debug/
+Cargo.lock
+**/*.rs.bk
