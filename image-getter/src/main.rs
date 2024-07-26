@@ -77,6 +77,8 @@ impl<R: Read> IterChunks for R {
     }
 }
 
+const FILE_BUFFER_SIZE: usize = 8192;
+
 #[tonic::async_trait]
 impl Greeter for MyGreeter {
     async fn greet(
@@ -108,17 +110,19 @@ impl Greeter for MyGreeter {
         request: Request<ImageRequest>,
     ) -> Result<Response<Self::ImageStreamStream>, Status> {
         let mut f = File::open(request.into_inner().url)?;
-        // let mut buffer = [0; 10];
-        // f.read_exact(&mut buffer)?;
+        let file_size = f.metadata().unwrap().len();
 
         let repeat = std::iter::repeat_with(move || {
-            let mut buffer = [0; 1024];
-            f.read_exact(&mut buffer).unwrap();
-            println!("read buffer for image");
+            let mut buffer = [0; FILE_BUFFER_SIZE];
+
+            let _ = f.read(&mut buffer).expect("Failed to read buffer");
+
             ImageResponse {
                 image_data: buffer.to_vec(),
             }
-        });
+        })
+        .take((file_size as usize / FILE_BUFFER_SIZE) + 1);
+
         let mut stream = Box::pin(tokio_stream::iter(repeat));
 
         // spawn and channel are required if you want handle "disconnect" functionality
