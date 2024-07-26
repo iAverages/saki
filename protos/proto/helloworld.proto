@@ -3,7 +3,7 @@ package helloworld;
 
 service Greeter {
     rpc Greet (HelloRequest) returns (HelloResponse) {};
-    rpc Image (HelloRequest) returns (stream ImageResponse) {};
+    rpc Image (ImageRequest) returns (ImageResponse) {};
 }
 
 message HelloRequest{
@@ -12,6 +12,10 @@ message HelloRequest{
 
 message HelloResponse {
     string response = 1; 
+}
+
+message ImageRequest{
+    string url = 1;
 }
 
 message ImageResponse {

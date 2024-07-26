@@ -17,12 +17,19 @@
           pkgs = import nixpkgs {
             inherit system overlays;
           };
-          rustToolchain = pkgs.pkgsBuildHost.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         in
         with pkgs;
         {
-          devShells.default = mkShell {
-            buildInputs = [ rustToolchain pkgs.protobuf_26 ];
+          devShells.default = with pkgs; mkShell {
+            buildInputs = [
+                openssl
+                pkg-config
+                # rust-bin.beta.latest.default
+                (pkgs.rust-bin.stable.latest.rust.override {
+                  extensions = ["rust-src"];
+                })
+                protobuf_25
+            ];
           };
         }
       );
