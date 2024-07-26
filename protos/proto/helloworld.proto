@@ -1,9 +1,11 @@
 syntax = "proto3";
+
 package helloworld;
 
 service Greeter {
     rpc Greet (HelloRequest) returns (HelloResponse) {};
     rpc Image (ImageRequest) returns (ImageResponse) {};
+    rpc ImageStream(ImageRequest) returns (stream ImageResponse) {};
 }
 
 message HelloRequest{

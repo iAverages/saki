@@ -1,7 +1,12 @@
 use protos::r#gen::helloworld::ImageRequest;
-use std::fs;
+use std::fs::{self, File};
 use std::pin::Pin;
+use std::result::Result;
+use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::Stream;
+use tokio_stream::StreamExt;
 use tonic::{transport::Server, Request, Response, Status};
 
 use protos::gen::helloworld::greeter_server::{Greeter, GreeterServer};
@@ -48,7 +53,7 @@ impl<R: Read> Iterator for ToChunks<R> {
     fn next(&mut self) -> Option<Self::Item> {
         let mut buffer = vec![0u8; self.chunk_size];
         match self.reader.read_exact(&mut buffer) {
-            Ok(()) => return Some(Ok(buffer)),
+            Ok(()) => Some(Ok(buffer)),
             Err(e) if e.kind() == ErrorKind::UnexpectedEof => None,
             Err(e) => Some(Err(e)),
         }
@@ -94,6 +99,55 @@ impl Greeter for MyGreeter {
         let file = fs::read(request.into_inner().url)?;
 
         Ok(Response::new(ImageResponse { image_data: file }))
+    }
+
+    type ImageStreamStream = ResponseStream;
+
+    async fn image_stream(
+        &self,
+        request: Request<ImageRequest>,
+    ) -> Result<Response<Self::ImageStreamStream>, Status> {
+        let mut f = File::open(request.into_inner().url)?;
+        // let mut buffer = [0; 10];
+        // f.read_exact(&mut buffer)?;
+
+        let repeat = std::iter::repeat_with(move || {
+            let mut buffer = [0; 1024];
+            f.read_exact(&mut buffer).unwrap();
+            println!("read buffer for image");
+            ImageResponse {
+                image_data: buffer.to_vec(),
+            }
+        });
+        let mut stream = Box::pin(tokio_stream::iter(repeat));
+
+        // spawn and channel are required if you want handle "disconnect" functionality
+        // the `out_stream` will not be polled after client disconnect
+        let (tx, rx) = mpsc::channel(124);
+        tokio::spawn(async move {
+            while let Some(item) = stream.next().await {
+                match tx.send(Result::<_, Status>::Ok(item)).await {
+                    Ok(_) => {
+                        println!("queued to send");
+                        // item (server response) was queued to be send to client
+                    }
+                    Err(_item) => {
+                        // output_stream was build from rx and both are dropped
+                        break;
+                    }
+                }
+            }
+            println!("\tclient disconnected");
+        });
+
+        let output_stream = ReceiverStream::new(rx);
+        Ok(Response::new(
+            Box::pin(output_stream) as Self::ImageStreamStream
+        ))
+        // todo:
+        // stream file from disk
+        // create stream that can be used by grpc
+        // stonk
     }
 }
 
