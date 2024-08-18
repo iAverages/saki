@@ -5,3 +5,5 @@ target/
 debug/
 Cargo.lock
 **/*.rs.bk
+node_modules
+.env

@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["image-getter", "gateway", "protos"]
+members = [
+    "services/image-getter",
+    "services/gateway",
+    "services/protos",
+    "services/database",
+]
 
 [workspace.dependencies]
 tonic = "0.12"
@@ -13,6 +18,8 @@ tokio = { version = "1.0", features = [
 ] }
 tokio-stream = { version = "0.1.15" }
 tonic-build = "0.12"
+anyhow = "1.0.86"
+dotenv = "0.15.0"
 
 # Workspace dependencies
-protos = { path = "./protos/" }
+protos = { path = "./services/protos/" }

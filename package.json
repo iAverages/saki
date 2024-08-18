@@ -1,0 +1,9 @@
+{
+  "name": "saki",
+  "private": true,
+  "version": "0.0.0",
+  "author": "Daniel Raybone <me@danielraybone.com>",
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

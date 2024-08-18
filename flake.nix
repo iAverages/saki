@@ -9,19 +9,24 @@
       };
     };
   };
-  outputs = { self, nixpkgs, flake-utils, rust-overlay }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    rust-overlay,
+  }:
     flake-utils.lib.eachDefaultSystem
-      (system:
-        let
-          overlays = [ (import rust-overlay) ];
-          pkgs = import nixpkgs {
-            inherit system overlays;
-          };
-        in
-        with pkgs;
-        {
-          devShells.default = with pkgs; mkShell {
-            buildInputs = [
+    (
+      system: let
+        overlays = [(import rust-overlay)];
+        pkgs = import nixpkgs {
+          inherit system overlays;
+        };
+      in
+        with pkgs; {
+          devShells.default = with pkgs;
+            mkShell {
+              buildInputs = [
                 openssl
                 pkg-config
                 # rust-bin.beta.latest.default
@@ -29,8 +34,16 @@
                   extensions = ["rust-src"];
                 })
                 protobuf_25
-            ];
-          };
+                nodePackages.prisma
+              ];
+
+              shellHook = with pkgs; ''
+                export PRISMA_QUERY_ENGINE_BINARY="${prisma-engines}/bin/query-engine";
+                export PRISMA_SCHEMA_ENGINE_BINARY="${prisma-engines}/bin/schema-engine";
+                export PRISMA_FMT_BINARY="${prisma-engines}/bin/prisma-fmt"
+                export PRISMA_QUERY_ENGINE_LIBRARY="${prisma-engines}/lib/libquery_engine.node"
+              '';
+            };
         }
-      );
+    );
 }

@@ -1,0 +1,11 @@
+{
+  "name": "@saki/prisma-generator-rust-test",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "@types/node": "16.11.7",
+    "prisma": "^5.17.0",
+    "prisma-rust-types": "workspace:*",
+    "typescript": "4.5.2"
+  }
+}
