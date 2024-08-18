@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package database;
+
+service Database {
+    rpc GetFileMeta(GetFileMetaRequest) returns (GetFileMetaResponse);
+}
+
+message GetFileMetaRequest {
+    string key = 1;
+}
+
+message GetFileMetaResponse {
+    string id = 1;
+    string name = 2; 
+    uint64 size = 3;
+    string upload_date = 4;
+}
+

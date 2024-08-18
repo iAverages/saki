@@ -1,0 +1,5 @@
+packages: 
+- services/database
+- packages/prisma-rust-generator
+- packages/prisma-rust-test
+

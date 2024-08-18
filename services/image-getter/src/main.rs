@@ -1,8 +1,5 @@
 use protos::r#gen::helloworld::ImageRequest;
-use std::fs::{self, File};
-use std::pin::Pin;
-use std::result::Result;
-use std::time::Duration;
+
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::Stream;
@@ -11,71 +8,16 @@ use tonic::{transport::Server, Request, Response, Status};
 
 use protos::gen::helloworld::greeter_server::{Greeter, GreeterServer};
 use protos::gen::helloworld::{HelloRequest, HelloResponse, ImageResponse};
-use std::{error::Error, io::Read};
+
+use std::fs::{self, File};
+use std::io::Read;
+use std::pin::Pin;
+use std::result::Result;
 
 #[derive(Debug, Default)]
 pub struct MyGreeter {}
 
-type EchoResult<T> = Result<Response<T>, Status>;
 type ResponseStream = Pin<Box<dyn Stream<Item = Result<ImageResponse, Status>> + Send>>;
-
-const BUFFER_SIZE: usize = 5;
-
-fn read_file<R: Read>(mut reader: R) -> Result<(), Box<dyn Error>> {
-    let mut buffer = [0_u8; BUFFER_SIZE];
-
-    loop {
-        let count = reader.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        let string_slice = std::str::from_utf8(&buffer[..count])?;
-
-        // Read BUFFER_SIZE bytes in each loop
-        // Change print! to println!, to see the result.
-
-        print!("{string_slice}");
-    }
-
-    Ok(())
-}
-
-use std::io::{self, ErrorKind};
-
-pub struct ToChunks<R> {
-    reader: R,
-    chunk_size: usize,
-}
-
-impl<R: Read> Iterator for ToChunks<R> {
-    type Item = io::Result<Vec<u8>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut buffer = vec![0u8; self.chunk_size];
-        match self.reader.read_exact(&mut buffer) {
-            Ok(()) => Some(Ok(buffer)),
-            Err(e) if e.kind() == ErrorKind::UnexpectedEof => None,
-            Err(e) => Some(Err(e)),
-        }
-    }
-}
-
-pub trait IterChunks {
-    type Output;
-
-    fn iter_chunks(self, len: usize) -> Self::Output;
-}
-
-impl<R: Read> IterChunks for R {
-    type Output = ToChunks<R>;
-
-    fn iter_chunks(self, len: usize) -> Self::Output {
-        ToChunks {
-            reader: self,
-            chunk_size: len,
-        }
-    }
-}
 
 const FILE_BUFFER_SIZE: usize = 8192;
 

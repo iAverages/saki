@@ -1,15 +1,19 @@
-use std::convert::Infallible;
-
 use axum::body::Body;
-use axum::http::{header, HeaderName, StatusCode};
+use axum::extract::Path;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use axum::{routing::get, Router};
-use bytes::Bytes;
 use protos::gen::helloworld::greeter_client::GreeterClient;
 use protos::gen::helloworld::HelloRequest;
+use protos::r#gen::database::database_client::DatabaseClient;
+use protos::r#gen::database::GetFileMetaRequest;
 use protos::r#gen::helloworld::ImageRequest;
+use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
+use tonic::Request;
 
 async fn root() -> String {
     let mut client = GreeterClient::connect("http://[::1]:50051").await.unwrap();
@@ -20,22 +24,6 @@ async fn root() -> String {
 
     let response = client.greet(request).await.unwrap();
     response.into_inner().response
-}
-
-async fn image() -> Result<impl IntoResponse, ()> {
-    let mut client = GreeterClient::connect("http://[::1]:50051").await.unwrap();
-    let path = "/home/dan/Pictures/Screenshot_20240603_000557.png";
-
-    let request = tonic::Request::new(ImageRequest {
-        url: path.to_string(),
-    });
-
-    let image = client.image(request).await.unwrap().into_inner();
-    let bytes = Bytes::from(image.image_data);
-
-    let headers = [(header::CONTENT_TYPE, "image/png")];
-
-    Ok((headers, bytes).into_response())
 }
 
 async fn image_stream_video() -> Result<impl IntoResponse, ()> {
@@ -49,7 +37,7 @@ async fn image_stream_small() -> Result<impl IntoResponse, ()> {
 }
 
 async fn image_stream_big() -> Result<impl IntoResponse, ()> {
-    let path = "/home/dan/Pictures/Screenshot_20240603_000557.png";
+    let path = "/home/dan/wallpapers/shoshimin-06.png";
     image_stream_impl(path).await
 }
 
@@ -90,12 +78,39 @@ async fn image_stream_impl(path: &str) -> Result<impl IntoResponse, ()> {
     Ok(response.body(body).unwrap())
 }
 
+#[derive(Serialize, Deserialize)]
+struct ImageMeta {
+    pub id: String,
+    pub name: String,
+    pub size: u64,
+    pub upload_date: String,
+}
+
+async fn image_meta(Path(key): Path<String>) -> Result<impl IntoResponse, ()> {
+    let mut client = DatabaseClient::connect("http://[::1]:50052").await.unwrap();
+    let request = Request::new(GetFileMetaRequest { key });
+
+    match client.get_file_meta(request).await {
+        Ok(response) => {
+            let meta = response.into_inner();
+            Ok(Json(ImageMeta {
+                id: meta.id,
+                name: meta.name,
+                size: meta.size,
+                upload_date: meta.upload_date,
+            }))
+        }
+        // TODO: Return proper error here
+        Err(_) => Err(()),
+    }
+}
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/", get(root))
         .route("/image/video", get(image_stream_video))
         .route("/image/big", get(image_stream_big))
+        .route("/image/meta/:key", get(image_meta))
         .route("/image/small", get(image_stream_small));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
