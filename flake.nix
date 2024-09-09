@@ -33,8 +33,16 @@
                 (pkgs.rust-bin.stable.latest.rust.override {
                   extensions = ["rust-src"];
                 })
+              ];
+
+              packages = [
                 protobuf_25
                 nodePackages.prisma
+                tilt
+                kubernetes-helm
+                ctlptl
+                kind
+                kubectl
               ];
 
               shellHook = with pkgs; ''
